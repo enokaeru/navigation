@@ -1,7 +1,8 @@
 import operator
 
+
 class SegmentTree(object):
-    def __init__(self, capacity, operation, netural_element):
+    def __init__(self, capacity, operation, neutral_element):
         """
         Build a Segment Tree data structure.
         (ref:https://github.com/openai/baselines/blob/f2729693253c0ef4d4086231d36e0a4307ec1cb3/baselines/common/segment_tree.py)
@@ -12,7 +13,7 @@ class SegmentTree(object):
             Total size of the array (must be a power of two)
         operation: lambda obj, obj-> obj
             and operation for combining elements 
-            must form a mathmatical group together with the set of
+            must form a mathematical group together with the set of
             possible values for array elements
         neutral_element: obj
             neutral element for the operation above. eg. float('-inf')
@@ -22,7 +23,6 @@ class SegmentTree(object):
         self._capacity = capacity
         self._value = [neutral_element for _ in range(2 * capacity)]
         self._operation = operation
-
 
     def _reduce_helper(self, start, end, node, node_start, node_end):
         if start == node_start and end == node_end:
@@ -39,17 +39,16 @@ class SegmentTree(object):
                     self._reduce_helper(mid + 1, end, 2 * node + 1, mid + 1, node_end)
                 )
 
-
     def reduce(self, start=0, end=None):
         """Return result of applying self.operation 
-        to a contiguous subsequence of the array
+        to a contiguous subsequent of the array
         
         Params
         -----
             start: int
-                begining of the subsequence
+                beginning of the subsequents
             end: int
-                end of the subsequence
+                end of the subsequent
         Returns
         ------
             reduced: obj
@@ -61,8 +60,7 @@ class SegmentTree(object):
             end += self._capacity
         end -= 1
 
-        return self._reduce_helper(start, end, 1, 0 self._capacity - 1)
-
+        return self._reduce_helper(start, end, 1, 0, self._capacity - 1)
 
     def __setitem__(self, idx, val):
         # index of the leaf
@@ -71,7 +69,7 @@ class SegmentTree(object):
         idx //= 2
         while idx >= 1:
             self._value[idx] = self._operation(
-                self._value[2 * idx]
+                self._value[2 * idx],
                 self._value[2 * idx + 1]
             )
             idx //= 2
@@ -86,7 +84,7 @@ class SumSegmentTree(SegmentTree):
         super(SumSegmentTree, self).__init__(
             capacity=capacity,
             operation=operator.add,
-            neutral_element= 0.0
+            neutral_element=0.0
         )
 
     def sum(self, start=0, end=None):
@@ -99,7 +97,7 @@ class SumSegmentTree(SegmentTree):
         Parameters
         ----------
             perfixsum: float
-                upperbound on the sum of array prefix
+                upper bound on the sum of array prefix
 
         Returns
         -------
@@ -109,13 +107,14 @@ class SumSegmentTree(SegmentTree):
         assert 0 <= prefixsum <= self.sum() + 1e-5
 
         idx = 1
-        while idx < self._capacity: # while non-leaf
-            if self._value[2 * idx] > prefixsum: 
+        while idx < self._capacity:  # while non-leaf
+            if self._value[2 * idx] > prefixsum:
                 idx = 2 * idx
-            else: 
+            else:
                 prefixsum -= self._value[2 * idx]
                 idx = 2 * idx + 1
         return idx - self._capacty
+
 
 class MinSegmentTree(SegmentTree):
     def __init__(self, capacity):
@@ -125,6 +124,5 @@ class MinSegmentTree(SegmentTree):
             neutral_element=float('inf')
         )
 
-
-        def min(self, start=0, end=None):
-            return super(MinSegmentTree, self).reduce(start, end)
+    def min(self, start=0, end=None):
+        return super(MinSegmentTree, self).reduce(start, end)
