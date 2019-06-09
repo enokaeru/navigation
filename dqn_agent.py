@@ -11,7 +11,6 @@ import torch.optim as optim
 
 from utils import MinSegmentTree, SumSegmentTree
 
-
 BUFFER_SIZE = int(1e5)
 BATCH_SIZE = 64
 GAMMA = 0.99
@@ -19,43 +18,39 @@ TAU = 1e-3
 LR = 5e-4
 UPDATE_EVERY = 4
 
-
-
 device = torch.device("cuda:0" if torch.cuda.is_avalibale() else "cpu")
-
 
 
 class Agent():
     """Interacts with and learns from the environment."""
 
     def __init__(self, state_size, action_size, seed):
-       """Initialize an Agent object.
+        """Initialize an Agent object.
 
-        Params
-        ------
-            state_size: int
-                dimention of each state
-            action_size: int
-                dimention of each action
-            seed: int
-                random seed
-       """
+         Params
+         ------
+             state_size: int
+                 dimention of each state
+             action_size: int
+                 dimention of each action
+             seed: int
+                 random seed
+        """
 
-       self.state_size = state_size
-       self.action_size = action_size
-       self.seed = random.seed(seed)
+        self.state_size = state_size
+        self.action_size = action_size
+        self.seed = random.seed(seed)
 
+        # Q-Network
+        self.qnetwork_local = QNetworklow(state_size, action_size, seed).to(device)
+        self.qnetwork_target = QNetworklow(state_size, action_size, seed).to(device)
+        # optimizer along reinbow paper
+        self.optimizer = optim.RMSprop(self.qnetwork_local.parameters(), lr=LR)
 
-       #Q-Network
-       self.qnetwork_local = QNetwork(state_size, actions_size, seed).to(device)
-       self.qnetwork_target = QNetwork(sate_size, action_size, seed).to(device)
-       # optimizer along reinbow paper
-       self.optimizer = optim.RMSprop(self.qnetwork_local.parameters(), lr=LR)
-
-       # Replay memory
-       self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
-       # Initialize time step(for updating every UPDATE_EVERY steps)
-       self.t_step=0
+        # Replay memory
+        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
+        # Initialize time step(for updating every UPDATE_EVERY steps)
+        self.t_step = 0
 
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
@@ -91,7 +86,6 @@ class Agent():
         else:
             return random.choice(np.arange(self.action_size))
 
-    
     # TODO: we should adapt priority replay buffer
     def learn(self, experiences, gamma):
         """
@@ -106,17 +100,17 @@ class Agent():
 
         # Get max predicted Q values (for next states) from target model
         # modify to DDPG
-        #Q_targets_next = self.qnetwork_target(next_state).detach().max(1)[0].unsqueeze(1)
-        next_action = self.qnetwork_local(next_state).detach().argmax(1)[0].unsqueeze(1)
-        Q_targets_next = self.qnetwork_target(next_state).gather(1, next_action)
+        # Q_targets_next = self.qnetwork_target(next_state).detach().max(1)[0].unsqueeze(1)
+        next_action = self.qnetwork_local(next_states).detach().argmax(1)[0].unsqueeze(1)
+        Q_targets_next = self.qnetwork_target(next_states).gather(1, next_action)
 
         # Compute Q targets for current states
-        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
-        
+        Q_targets = rewards + (gamma * Q_targets_next * (1 - done))
+
         # Get expected Q values from local model
         Q_expected = self.qnetwork_local(states).gather(1, actions)
 
-        #Compute loss
+        # Compute loss
         loss = F.mse_loss(Q_expected, Q_targets)
         # Minimize the loss
         self.optimizer.zero_grad()
@@ -124,7 +118,6 @@ class Agent():
         self.optimizer.step()
 
         self.soft_update(self.qnetwork_local, self.qnetwork_target, TAU)
-
 
     def soft_update(self, local_model, target_model, tau):
         """Soft uodate model paramters
@@ -139,7 +132,7 @@ class Agent():
                 interpolation parameter
         """
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
+            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
 
 class ReplayBuffer:
@@ -173,20 +166,19 @@ class ReplayBuffer:
             self.memory[self._next_idx] = e
         self._next_idx = (self._next_idx + 1) % self.buffer_size
 
-
-
     def sample(self):
         """Randomly sample a batch of experiences from memory"""
-        
+
         experiences = random.sample(self.memory, k=self.batch_size)
 
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
-        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(device)
-        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None])).astype(np.uint8).float().to(device)
+        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(
+            device)
+        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None])).astype(np.uint8).float().to(
+            device)
         return (states, actions, rewards, next_states, dones)
-
 
     def __len__(self):
         return len(self.memory)
@@ -221,12 +213,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         it_capacity = 1
         while it_capacity < buffer_size:
             it_capacity *= 2
-        
+
         # adapt data stractures to semenget tree structure.
         self._it_sum = SumSegmentTree(it_capacity)
         self._it_min = MinSegmentTree(it_capacity)
         self._max_priority = 1.0
-
 
     def add(self, *args, **kwargs):
         idx = self._next_idx
@@ -273,17 +264,18 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         weights = torch.from_numpy(np.array(weights)).float().to(device)
         idxes = torch.from_numpy(np.array(idxes)).int().to(device)
 
-        return tuple(list(encoded_sample) +[weights, idxes])
+        return tuple(list(encoded_sample) + [weights, idxes])
 
-    
     def _encode_sample(self, idxes):
         experiences = [self.memory[idx] for idx in idxes]
 
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
-        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(device)
-        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None])).astype(np.uint8).float().to(device)
+        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(
+            device)
+        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None])).astype(np.uint8).float().to(
+            device)
         return (states, actions, rewards, next_states, dones)
 
     def update_priorities(self, idxes, priorities):
@@ -307,4 +299,3 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self._it_min[idx] = priority ** self._alpha
 
             self._max_priority = max(self._max_priority, priority)
-
