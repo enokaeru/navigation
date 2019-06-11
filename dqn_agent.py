@@ -227,6 +227,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self._it_min[idx] = self._max_priority ** self._alpha
 
     def _sample_proportional(self, batch_size):
+        # generate uniformly random value's indexes from 0 to (p_total/batch_size)
+        # sample experiences from the list
         res = []
         p_total = self._it_sum.sum(0, len(self.memory) - 1)
         every_range_len = p_total / batch_size
@@ -253,7 +255,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         idxes = self._sample_proportional(batch_size)
 
+        # calculate the weight
         weights = []
+        # calculate max_weight for normalization of the weight
         p_min = self._it_min.min() / self._it_sum.sum()
         max_weight = (p_min * len(self.memory)) ** (-beta)
         for idx in idxes:
@@ -299,3 +303,5 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self._it_min[idx] = priority ** self._alpha
 
             self._max_priority = max(self._max_priority, priority)
+
+

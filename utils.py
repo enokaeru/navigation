@@ -26,9 +26,9 @@ class SegmentTree(object):
 
     def _reduce_helper(self, start, end, node, node_start, node_end):
         if start == node_start and end == node_end:
-            return self._value[node]
+            return self._value[node]  # return root
         mid = (node_start + node_end) // 2
-        if end <= mid:
+        if end <= mid:  #
             return self._reduce_helper(start, end, 2 * node, node_start, mid)
         else:
             if mid + 1 <= start:
@@ -64,6 +64,7 @@ class SegmentTree(object):
 
     def __setitem__(self, idx, val):
         # index of the leaf
+        # 1: root
         idx += self._capacity
         self._value[idx] = val
         idx //= 2
@@ -113,7 +114,7 @@ class SumSegmentTree(SegmentTree):
             else:
                 prefixsum -= self._value[2 * idx]
                 idx = 2 * idx + 1
-        return idx - self._capacty
+        return idx - self._capacity
 
 
 class MinSegmentTree(SegmentTree):
