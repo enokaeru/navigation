@@ -134,7 +134,7 @@ class Agent(object):
         Q_expected = self.qnetwork_local(states).gather(1, actions)
         td_error = (Q_targets.cpu().detach() - Q_expected.cpu().detach()).abs().numpy()
         new_priorities = td_error + self.prioritized_replay_eps
-        self.memory.update_priorities(batch_idxes.numpy(), new_priorities)
+        self.memory.update_priorities(batch_idxes.cpu().numpy(), new_priorities)
 
 
 
