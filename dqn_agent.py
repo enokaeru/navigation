@@ -124,7 +124,7 @@ class Agent(object):
         # Get max predicted Q values (for next states) from target model
         # modify to DDQN
         # Q_targets_next = self.qnetwork_target(next_state).detach().max(1)[0].unsqueeze(1)
-        next_action = self.qnetwork_local(next_states).detach().argmax(1)[0].unsqueeze(1)
+        next_action = self.qnetwork_local(next_states).detach().argmax(1).unsqueeze(1)
         Q_targets_next = self.qnetwork_target(next_states).gather(1, next_action)
 
         # Compute Q targets for current states
@@ -132,9 +132,9 @@ class Agent(object):
 
         # Get expected Q values from local model
         Q_expected = self.qnetwork_local(states).gather(1, actions)
-        td_error = (Q_targets - Q_expected).abs().numpy()
+        td_error = (Q_targets.detach() - Q_expected.detach()).abs().numpy()
         new_priorities = td_error + self.prioritized_replay_eps
-        self.memory.update_priorities(batch_idxes, new_priorities)
+        self.memory.update_priorities(batch_idxes.numpy(), new_priorities)
 
 
 
@@ -142,7 +142,7 @@ class Agent(object):
         loss = F.mse_loss(Q_expected, Q_targets)
         # Minimize the loss
         self.optimizer.zero_grad()
-        loss.backword()
+        loss.backward()
         self.optimizer.step()
 
         self.soft_update(self.qnetwork_local, self.qnetwork_target, TAU)
@@ -201,7 +201,7 @@ class ReplayBuffer:
         experiences = random.sample(self.memory, k=self.batch_size)
 
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
-        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(device)
+        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
         next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(
             device)
@@ -302,7 +302,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
     def _encode_sample(self, idxes):
         experiences = [self.memory[idx] for idx in idxes]
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
-        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(device)
+        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
         next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(
             device)
