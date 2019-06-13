@@ -122,7 +122,7 @@ class Agent(object):
         states, actions, rewards, next_states, done, weights, batch_idxes = experiences
 
         # Get max predicted Q values (for next states) from target model
-        # modify to DDPG
+        # modify to DDQN
         # Q_targets_next = self.qnetwork_target(next_state).detach().max(1)[0].unsqueeze(1)
         next_action = self.qnetwork_local(next_states).detach().argmax(1)[0].unsqueeze(1)
         Q_targets_next = self.qnetwork_target(next_states).gather(1, next_action)
@@ -306,7 +306,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
         next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(
             device)
-        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None])).astype(np.uint8).float().to(
+        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(
             device)
         return (states, actions, rewards, next_states, dones)
 
