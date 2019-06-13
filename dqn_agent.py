@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from utils import MinSegmentTree, SumSegmentTree
+from utils import MinSegmentTree, SumSegmentTree ,LinearSchedule
 
 BUFFER_SIZE = int(1e5)
 BATCH_SIZE = 64
@@ -21,20 +21,36 @@ UPDATE_EVERY = 4
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class Agent():
+class Agent(object):
     """Interacts with and learns from the environment."""
 
-    def __init__(self, state_size, action_size, seed):
+    def __init__(self, state_size, action_size, seed,
+                 lr=5e-4,
+                 total_timesteps=100000,
+                 prioritized_replay_alpha=0.6,
+                 prioritized_replay_beta0=0.4,
+                 prioritized_replay_beta_iters=None,
+                 prioritized_replay_eps=1e-6
+                 ):
         """Initialize an Agent object.
 
-         Params
-         ------
-             state_size: int
-                 dimention of each state
-             action_size: int
-                 dimention of each action
-             seed: int
-                 random seed
+        Params
+        ------
+            state_size: int
+                dimension of each state
+            action_size: int
+                dimension of each action
+            seed: int
+                random seed
+            total_timesteps: int
+                l
+             prioritized_replay_alpha: float
+                alpha parameter for prioritized replay buffer
+             prioritized_replay_beta0: float
+                initial value of beta for prioritized replay buffer
+             prioritized_replay_beta_iters: int
+                number of iterations over which beta will be annealed from initial value
+                to 1.0. If set to None equals to total_timesteps.
         """
 
         self.state_size = state_size
@@ -48,9 +64,15 @@ class Agent():
         self.optimizer = optim.RMSprop(self.qnetwork_local.parameters(), lr=LR)
 
         # Replay memory
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
+        self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, prioritized_replay_alpha)
+        if prioritized_replay_beta_iters is None:
+            prioritized_replay_beta_iters = total_timesteps
+        self.beta_schedule = LinearSchedule(prioritized_replay_beta_iters,
+                                        initial_p=prioritized_replay_beta0,
+                                        final_p=1.0)
         # Initialize time step(for updating every UPDATE_EVERY steps)
         self.t_step = 0
+        self.prioritized_replay_eps=prioritized_replay_eps
 
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
@@ -61,8 +83,9 @@ class Agent():
         if self.t_step == 0:
             # If enough samples are available in memory, get random subset and learn
             if len(self.memory) > BATCH_SIZE:
-                experiences = self.memory.sample()
+                experiences = self.memory.sample(BATCH_SIZE, self.beta_schedule.value(self.t_step))
                 self.learn(experiences, GAMMA)
+
 
     def act(self, state, eps=0.):
         """
@@ -96,7 +119,7 @@ class Agent():
                 tuple of (s, a, r, s', done) tuples
             gamma (float): discount factor
         """
-        states, actions, rewards, next_states, done = experiences
+        states, actions, rewards, next_states, done, weights, batch_idxes = experiences
 
         # Get max predicted Q values (for next states) from target model
         # modify to DDPG
@@ -109,6 +132,11 @@ class Agent():
 
         # Get expected Q values from local model
         Q_expected = self.qnetwork_local(states).gather(1, actions)
+        td_error = (Q_targets - Q_expected).abs().numpy()
+        new_priorities = td_error + self.prioritized_replay_eps
+        self.memory.update_priorities(batch_idxes, new_priorities)
+
+
 
         # Compute loss
         loss = F.mse_loss(Q_expected, Q_targets)
@@ -157,6 +185,7 @@ class ReplayBuffer:
         self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
         self.seed = random.seed(seed)
         self._next_idx = 0
+        self.buffer_size = buffer_size
 
     def add(self, state, action, reward, next_state, done):
         e = self.experience(state, action, reward, next_state, done)
@@ -272,7 +301,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
     def _encode_sample(self, idxes):
         experiences = [self.memory[idx] for idx in idxes]
-
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
