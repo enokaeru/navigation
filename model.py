@@ -24,7 +24,6 @@ class QNetworklow(nn.Module):
 
         self.action_out = nn.Linear(hiddens, action_size)
         self.state_out = nn.Linear(hiddens, state_size)
-        self.action_score = nn.Linear(action_size, 1)
         self.state_score = nn.Linear(state_size, 1)
 
 
@@ -35,8 +34,7 @@ class QNetworklow(nn.Module):
         fc_out = x.squeeze()
         state_out = F.relu(self.state_out(fc_out))
         action_out = F.relu(self.action_out(fc_out))
-        state_score = self.state_score(state_out)
-        action_scores = self.action_score(action_out)
-        action_scores_mean = action_scores.mean(1)
-        action_score_centered = action_scores - action_scores_mean.expand_as(action_scores)
-        return state_score + action_score_centered
+        state_scores = self.state_score(state_out)
+        action_scores_mean = action_out.mean(1)
+        action_score_centered = action_out - action_scores_mean.expand_as(action_out)
+        return state_scores + action_score_centered
