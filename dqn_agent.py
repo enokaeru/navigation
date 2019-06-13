@@ -26,7 +26,7 @@ class Agent(object):
 
     def __init__(self, state_size, action_size, seed,
                  lr=5e-4,
-                 total_timesteps=100000,
+                 total_timesteps=1000000,
                  prioritized_replay_alpha=0.6,
                  prioritized_replay_beta0=0.4,
                  prioritized_replay_beta_iters=None,

@@ -36,5 +36,5 @@ class QNetworklow(nn.Module):
         action_out = F.relu(self.action_out(fc_out))
         state_scores = self.state_score(state_out)
         action_scores_mean = action_out.mean()
-        action_score_centered = action_out - action_scores_mean.expand_as(action_out)
+        action_score_centered = action_out - action_scores_mean
         return state_scores + action_score_centered
