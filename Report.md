@@ -1,13 +1,39 @@
+[//]: # (Image References)
+
+[image1]: scores.png "Plot Scores"
+
 #Report
 
 ## Learning  Algorithm
 I adapt priorities replay buffer, dueling network, double dqn, Multi-step learning.
 Hyper parameters are below, along to paper, git-hub repository.
 
+| Hyper-parameter         | value    | reference                                                      |
+|-------------------------|----------|----------------------------------------------------------------|
+| Q network: hidden units | 256      | open ai gym baseline                                           |
+| state_size              | 37       |                                                                |
+| action_size             | 4        |                                                                |
+| Discount factor         | 0.99     | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| LR (optim Adam)         | 6.25E-05 | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| epsilon (optim Adam)    | 1.25E-04 | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| UPDATE_EVERY            | 4        | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| BATCH_SIZE              | 64       | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| prioritize alpha         | 0.6      | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| prioritize beta          | 0.4→1    | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| prioritize omega         | 0.5      | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| priorities eps           | 1.00E-06 | udacity github                                                 |
+| eps_start               | 1        | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| eps_end                 | 0.02     | udacity github                                                 |
+| multi-step              | 3.00     | Rainbow: Combining Improvements in Deep Reinforcement Learning |
+| TAU                     | 1.00E-03 | CONTINUOUS  CONTROL  WITH  DEEP  REINFORCEMENT LEARNING         |
 
 
 ## Plot of Rewords
+821 episodes needed to solve the environment. 
+I'm interested how much to improve the reward, so the training continued　even after solving.
+The score decreased due to more learning.
 
+![Plot Scores][image1]
 
 ## Ideas for Future Work
 - I don't try to implement distribution DQN, Noise-Net from Rainbow.
