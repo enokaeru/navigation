@@ -25,13 +25,12 @@ class Agent(object):
     """Interacts with and learns from the environment."""
 
     def __init__(self, state_size, action_size, seed,
-                 lr=5e-4,
                  total_timesteps=1000000,
                  prioritized_replay_alpha=0.6,
                  prioritized_replay_beta0=0.4,
                  prioritized_replay_beta_iters=None,
-                 prioritized_replay_eps=1e-6
-                 ):
+                 prioritized_replay_eps=1e-6,
+                 n_steps=4):
         """Initialize an Agent object.
 
         Params
@@ -51,12 +50,15 @@ class Agent(object):
              prioritized_replay_beta_iters: int
                 number of iterations over which beta will be annealed from initial value
                 to 1.0. If set to None equals to total_timesteps.
+             n_steps : int
+                number of steps for n-steps dqn
         """
 
         self.state_size = state_size
         self.action_size = action_size
         self.seed = random.seed(seed)
-
+        self.n_steps = n_steps
+        
         # Q-Network
         self.qnetwork_local = QNetworklow(state_size, action_size, seed).to(device)
         self.qnetwork_target = QNetworklow(state_size, action_size, seed).to(device)
@@ -64,7 +66,7 @@ class Agent(object):
         self.optimizer = optim.RMSprop(self.qnetwork_local.parameters(), lr=LR)
 
         # Replay memory
-        self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, prioritized_replay_alpha)
+        self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, prioritized_replay_alpha, )
         if prioritized_replay_beta_iters is None:
             prioritized_replay_beta_iters = total_timesteps
         self.beta_schedule = LinearSchedule(prioritized_replay_beta_iters,
@@ -73,6 +75,7 @@ class Agent(object):
         # Initialize time step(for updating every UPDATE_EVERY steps)
         self.t_step = 0
         self.prioritized_replay_eps=prioritized_replay_eps
+        
 
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
@@ -189,6 +192,7 @@ class ReplayBuffer:
 
     def add(self, state, action, reward, next_state, done):
         e = self.experience(state, action, reward, next_state, done)
+        
         if self._next_idx >= len(self.memory):
             self.memory.append(e)
         else:
