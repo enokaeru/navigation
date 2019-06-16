@@ -2,7 +2,8 @@
 
 [image1]: scores.png "Plot Scores"
 
-#Report
+
+# Report
 
 ## Learning  Algorithm
 I adapt priorities replay buffer, dueling network, double dqn, Multi-step learning.
