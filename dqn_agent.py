@@ -15,7 +15,7 @@ BUFFER_SIZE = int(1e5)
 BATCH_SIZE = 64
 GAMMA = 0.99
 TAU = 1e-3
-LR = 5e-4
+LR = 6.25e-5
 UPDATE_EVERY = 4
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -63,7 +63,7 @@ class Agent(object):
         self.qnetwork_local = QNetworklow(state_size, action_size, seed).to(device)
         self.qnetwork_target = QNetworklow(state_size, action_size, seed).to(device)
         # optimizer along reinbow paper
-        self.optimizer = optim.RMSprop(self.qnetwork_local.parameters(), lr=LR)
+        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR, eps=1.5e-4)
 
         # Replay memory
         self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, n_steps, GAMMA,
