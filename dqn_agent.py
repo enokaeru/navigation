@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from utils import MinSegmentTree, SumSegmentTree ,LinearSchedule
+from utils import MinSegmentTree, SumSegmentTree, LinearSchedule
 
 BUFFER_SIZE = int(1e5)
 BATCH_SIZE = 64
@@ -58,7 +58,7 @@ class Agent(object):
         self.action_size = action_size
         self.seed = random.seed(seed)
         self.n_steps = n_steps
-        
+
         # Q-Network
         self.qnetwork_local = QNetworklow(state_size, action_size, seed).to(device)
         self.qnetwork_target = QNetworklow(state_size, action_size, seed).to(device)
@@ -66,16 +66,16 @@ class Agent(object):
         self.optimizer = optim.RMSprop(self.qnetwork_local.parameters(), lr=LR)
 
         # Replay memory
-        self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, n_steps, GAMMA, prioritized_replay_alpha)
+        self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, n_steps, GAMMA,
+                                              prioritized_replay_alpha)
         if prioritized_replay_beta_iters is None:
             prioritized_replay_beta_iters = total_timesteps
         self.beta_schedule = LinearSchedule(prioritized_replay_beta_iters,
-                                        initial_p=prioritized_replay_beta0,
-                                        final_p=1.0)
+                                            initial_p=prioritized_replay_beta0,
+                                            final_p=1.0)
         # Initialize time step(for updating every UPDATE_EVERY steps)
         self.t_step = 0
-        self.prioritized_replay_eps=prioritized_replay_eps
-        
+        self.prioritized_replay_eps = prioritized_replay_eps
 
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
@@ -86,9 +86,8 @@ class Agent(object):
         if self.t_step == 0:
             # If enough samples are available in memory, get random subset and learn
             if len(self.memory) > BATCH_SIZE:
-                experiences = self.memory.sample(BATCH_SIZE, self.beta_schedule.value(self.t_step))
+                experiences = self.memory.sample(batch_size=BATCH_SIZE, beta=self.beta_schedule.value(self.t_step))
                 self.learn(experiences, GAMMA)
-
 
     def act(self, state, eps=0.):
         """
@@ -112,7 +111,6 @@ class Agent(object):
         else:
             return random.choice(np.arange(self.action_size))
 
-
     def learn(self, experiences, gamma):
         """
         Update value parameters using given batch of experience tuples.
@@ -122,7 +120,7 @@ class Agent(object):
                 tuple of (s, a, r, s', done) tuples
             gamma (float): discount factor
         """
-        states, actions, rewards, next_states, done, weights, batch_idxes = experiences
+        states, actions, rewards, next_states, done, n_steps, weights, batch_idxes  = experiences
 
         # Get max predicted Q values (for next states) from target model
         # modify to DDQN
@@ -131,15 +129,13 @@ class Agent(object):
         Q_targets_next = self.qnetwork_target(next_states).gather(1, next_action)
 
         # Compute Q targets for current states
-        Q_targets = rewards + (gamma ** self.n_steps * Q_targets_next * (1 - done))
+        Q_targets = rewards + (gamma ** n_steps * Q_targets_next * (1 - done))
 
         # Get expected Q values from local model
         Q_expected = self.qnetwork_local(states).gather(1, actions)
         td_error = (Q_targets.cpu().detach() - Q_expected.cpu().detach()).abs().numpy()
         new_priorities = td_error + self.prioritized_replay_eps
         self.memory.update_priorities(batch_idxes.cpu().numpy(), new_priorities)
-
-
 
         # Compute loss
         loss = F.mse_loss(Q_expected, Q_targets)
@@ -183,9 +179,10 @@ class ReplayBuffer:
                 random seed
         """
         self.action_size = action_size
-        self.memory = []
+        self._memory = []
         self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
+        self.experience = namedtuple("Experience",
+                                     field_names=["state", "action", "reward", "next_state", "done", "n_steps"])
         self.seed = random.seed(seed)
         self._next_idx = 0
         self.buffer_size = buffer_size
@@ -194,24 +191,43 @@ class ReplayBuffer:
 
     def add(self, state, action, reward, next_state, done):
 
-        e = self.experience(state, action, reward, next_state, done)
+        num = 0
+        e = self.experience(state, action, reward, next_state, done, 1)
         self.nstep_buffer.append(e)
         if len(self.nstep_buffer) < self.nstep_buffer.maxlen:
-            return
-        ex = self.nstep_buffer[0]
-        n_reward = sum([self.nstep_buffer[i].reward*self.gamma**i for i in range(self.nstep_buffer.maxlen)])
-        n_ex = self.experience(ex.state, ex.action, n_reward, ex.next_state, ex.done)
-        if self._next_idx >= len(self.memory):
-            self.memory.append(n_ex)
-        else:
-            self.memory[self._next_idx] = n_ex
-        self._next_idx = (self._next_idx + 1) % self.buffer_size
+            return num
 
+        if done:
+            for i in range(len(self.nstep_buffer)):
+                ex = self.nstep_buffer[i]
+                n_reward = sum(
+                    [self.nstep_buffer[j].reward * self.gamma ** n for n, j in
+                     enumerate(range(i, len(self.nstep_buffer)))])
+                n_ex = self.experience(ex.state, ex.action, n_reward, ex.next_state, ex.done,
+                                       int(len(self.nstep_buffer) - i))
+                if self._next_idx >= len(self._memory):
+                    self._memory.append(n_ex)
+                else:
+                    self._memory[self._next_idx] = n_ex
+                self._next_idx = (self._next_idx + 1) % self.buffer_size
+                num += 1
+
+        else:
+            ex = self.nstep_buffer[0]
+            n_reward = sum([self.nstep_buffer[i].reward * self.gamma ** i for i in range(self.nstep_buffer.maxlen)])
+            n_ex = self.experience(ex.state, ex.action, n_reward, ex.next_state, ex.done, self.nstep_buffer.maxlen)
+            if self._next_idx >= len(self._memory):
+                self._memory.append(n_ex)
+            else:
+                self._memory[self._next_idx] = n_ex
+            self._next_idx = (self._next_idx + 1) % self.buffer_size
+            num += 1
+        return num
 
     def sample(self):
         """Randomly sample a batch of experiences from memory"""
 
-        experiences = random.sample(self.memory, k=self.batch_size)
+        experiences = random.sample(self._memory, k=self.batch_size)
 
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(device)
@@ -220,10 +236,12 @@ class ReplayBuffer:
             device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None])).astype(np.uint8).float().to(
             device)
-        return (states, actions, rewards, next_states, dones)
+        n_steps = torch.from_numpy(np.vstack([e.n_steps for e in experiences if e is not None])).float().to(device)
+
+        return (states, actions, rewards, next_states, dones, n_steps)
 
     def __len__(self):
-        return len(self.memory)
+        return len(self._memory)
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
@@ -267,16 +285,18 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
     def add(self, *args, **kwargs):
         idx = self._next_idx
-        super().add(*args, **kwargs)
+        num = super().add(*args, **kwargs)
         # set max priority (be sure to be learned once)
-        self._it_sum[idx] = self._max_priority ** self._alpha
-        self._it_min[idx] = self._max_priority ** self._alpha
+        for i in range(num):
+            n_idx = (idx + i) % self.buffer_size
+            self._it_sum[n_idx] = self._max_priority ** self._alpha
+            self._it_min[n_idx] = self._max_priority ** self._alpha
 
     def _sample_proportional(self, batch_size):
         # generate uniformly random value's indexes from 0 to (p_total/batch_size)
         # sample experiences from the list
         res = []
-        p_total = self._it_sum.sum(0, len(self.memory) - 1)
+        p_total = self._it_sum.sum(0, len(self._memory) - 1)
         every_range_len = p_total / batch_size
         for i in range(batch_size):
             mass = random.random() * every_range_len + i * every_range_len
@@ -284,7 +304,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             res.append(idx)
         return res
 
-    def sample(self, batch_size, beta):
+    def sample(self, batch_size=64, beta=0.4):
         """
         Sample a batch of experiences.
         
@@ -305,10 +325,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         weights = []
         # calculate max_weight for normalization of the weight
         p_min = self._it_min.min() / self._it_sum.sum()
-        max_weight = (p_min * len(self.memory)) ** (-beta)
+        max_weight = (p_min * len(self._memory)) ** (-beta)
         for idx in idxes:
             p_sample = self._it_sum[idx] / self._it_sum.sum()
-            weight = (p_sample * len(self.memory)) ** (-beta)
+            weight = (p_sample * len(self._memory)) ** (-beta)
             weights.append(weight / max_weight)
         encoded_sample = self._encode_sample(idxes)
         weights = torch.from_numpy(np.array(weights)).float().to(device)
@@ -317,7 +337,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         return tuple(list(encoded_sample) + [weights, idxes])
 
     def _encode_sample(self, idxes):
-        experiences = [self.memory[idx] for idx in idxes]
+        experiences = [self._memory[idx] for idx in idxes]
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
@@ -325,7 +345,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(
             device)
-        return (states, actions, rewards, next_states, dones)
+        n_steps = torch.from_numpy(np.vstack([e.n_steps for e in experiences if e is not None])).float().to(device)
+        return (states, actions, rewards, next_states, dones, n_steps)
 
     def update_priorities(self, idxes, priorities):
         """Update priorities of sampled transitions.
@@ -343,10 +364,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         assert len(idxes) == len(priorities)
         for idx, priority in zip(idxes, priorities):
             assert priority > 0
-            assert 0 <= idx < len(self.memory)
+            assert 0 <= idx < len(self._memory)
             self._it_sum[idx] = priority ** self._alpha
             self._it_min[idx] = priority ** self._alpha
 
             self._max_priority = max(self._max_priority, priority)
-
-
