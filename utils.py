@@ -5,7 +5,7 @@ class SegmentTree(object):
     def __init__(self, capacity, operation, neutral_element):
         """
         Build a Segment Tree data structure.
-        (ref:https://github.com/openai/baselines/blob/f2729693253c0ef4d4086231d36e0a4307ec1cb3/baselines/common/segment_tree.py)
+        (ref:https://github.com/openai/baselines/blob/master/baselines/common/segment_tree.py)
 
         Params
         ------
