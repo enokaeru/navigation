@@ -44,11 +44,10 @@ pip install  -r requirements.txt
 
 
 ### Instructions
-
-Follow the instructions in `Navigation.ipynb` to get started with training your own agent!  
+Follow Section 4  in `Navigation.ipynb` to get started with training agent!
+The code could save weight and model to 'checkout.pth'.
 
 
 ### Reference
-https://github.com/openai/baselines/blob/master/baselines/deepq/models.py
-https://github.com/openai/baselines/blob/master/baselines/deepq/replay_buffer.py
-https://github.com/openai/baselines/blob/master/baselines/common/segment_tree.py
+[1] (openAi gym baseline)[https://github.com/openai/baselines/blob/master/baselines/deepq/models.py]
+[2] (Rainbow: Combining Improvements in Deep Reinforcement Learning)[https://arxiv.org/abs/1710.02298]

@@ -30,7 +30,7 @@ class Agent(object):
                  prioritized_replay_beta0=0.4,
                  prioritized_replay_beta_iters=None,
                  prioritized_replay_eps=1e-6,
-                 n_steps=4):
+                 n_steps=3):
         """Initialize an Agent object.
 
         Params
