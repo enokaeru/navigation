@@ -45,7 +45,7 @@ pip install  -r requirements.txt
 
 ### Instructions
 Follow Section 4  in `Navigation.ipynb` to get started with training agent!
-The code could save weight and model to 'checkout.pth'.
+The code could save weight and model to 'model.pt'.
 
 
 ### Reference
