@@ -1,7 +1,7 @@
 import numpy as np
 import random
 
-from collections import namedtuple
+from collections import namedtuple, deque
 
 from model import QNetworklow
 
@@ -66,7 +66,7 @@ class Agent(object):
         self.optimizer = optim.RMSprop(self.qnetwork_local.parameters(), lr=LR)
 
         # Replay memory
-        self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, prioritized_replay_alpha, )
+        self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, n_steps, GAMMA, prioritized_replay_alpha)
         if prioritized_replay_beta_iters is None:
             prioritized_replay_beta_iters = total_timesteps
         self.beta_schedule = LinearSchedule(prioritized_replay_beta_iters,
@@ -112,7 +112,7 @@ class Agent(object):
         else:
             return random.choice(np.arange(self.action_size))
 
-    # TODO: we should adapt priority replay buffer
+
     def learn(self, experiences, gamma):
         """
         Update value parameters using given batch of experience tuples.
@@ -131,7 +131,7 @@ class Agent(object):
         Q_targets_next = self.qnetwork_target(next_states).gather(1, next_action)
 
         # Compute Q targets for current states
-        Q_targets = rewards + (gamma * Q_targets_next * (1 - done))
+        Q_targets = rewards + (gamma ** self.n_steps * Q_targets_next * (1 - done))
 
         # Get expected Q values from local model
         Q_expected = self.qnetwork_local(states).gather(1, actions)
@@ -169,7 +169,7 @@ class Agent(object):
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples"""
 
-    def __init__(self, action_size, buffer_size, batch_size, seed):
+    def __init__(self, action_size, buffer_size, batch_size, seed, n_steps, gamma):
         """Initialize a ReplayBuffer object.
         Params
         ------
@@ -189,15 +189,24 @@ class ReplayBuffer:
         self.seed = random.seed(seed)
         self._next_idx = 0
         self.buffer_size = buffer_size
+        self.nstep_buffer = deque(maxlen=n_steps)
+        self.gamma = gamma
 
     def add(self, state, action, reward, next_state, done):
+
         e = self.experience(state, action, reward, next_state, done)
-        
+        self.nstep_buffer.append(e)
+        if len(self.nstep_buffer) < self.nstep_buffer.maxlen:
+            return
+        ex = self.nstep_buffer[0]
+        n_reward = sum([self.nstep_buffer[i].reward*self.gamma**i for i in range(self.nstep_buffer.maxlen)])
+        n_ex = self.experience(ex.state, ex.action, n_reward, ex.next_state, ex.done)
         if self._next_idx >= len(self.memory):
-            self.memory.append(e)
+            self.memory.append(n_ex)
         else:
-            self.memory[self._next_idx] = e
+            self.memory[self._next_idx] = n_ex
         self._next_idx = (self._next_idx + 1) % self.buffer_size
+
 
     def sample(self):
         """Randomly sample a batch of experiences from memory"""
@@ -222,7 +231,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
     ref:https://github.com/openai/baselines/blob/master/baselines/deepq/replay_buffer.py
     """
 
-    def __init__(self, action_size, buffer_size, batch_size, seed, alpha):
+    def __init__(self, action_size, buffer_size, batch_size, seed, n_steps, gamma, alpha):
         """
         Initalize a Prioritized Replay Buffer
         Params
@@ -235,11 +244,15 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 size of each training batch
             seed: int
                 random seed
+            n_steps: int
+                number of n_steps
+            gamma : float
+                discount value
             alpha: float
                 how much prioritization is used
                 (0 - no prioritization, 1 - full prioritization)
         """
-        super(PrioritizedReplayBuffer, self).__init__(action_size, buffer_size, batch_size, seed)
+        super(PrioritizedReplayBuffer, self).__init__(action_size, buffer_size, batch_size, seed, n_steps, gamma)
         assert alpha >= 0
         self._alpha = alpha
 
