@@ -30,6 +30,7 @@ class Agent(object):
                  prioritized_replay_beta0=0.4,
                  prioritized_replay_beta_iters=None,
                  prioritized_replay_omega=0.5,
+                 prioritized_replay_eps=1e-6,
                  n_steps=3):
         """Initialize an Agent object.
 
@@ -68,7 +69,7 @@ class Agent(object):
         # Replay memory
         self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, n_steps, GAMMA,
                                               prioritized_replay_alpha)
-        if prioritized_replay_beta_iters is None:
+        if prioritized_replay_beta_iters is None:ppp
             prioritized_replay_beta_iters = total_timesteps
         self.beta_schedule = LinearSchedule(prioritized_replay_beta_iters,
                                             initial_p=prioritized_replay_beta0,
@@ -76,6 +77,7 @@ class Agent(object):
         # Initialize time step(for updating every UPDATE_EVERY steps)
         self.t_step = 0
         self.prioritized_replay_omega = prioritized_replay_omega
+        self.prioritized_replay_eps = prioritized_replay_eps
 
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
@@ -134,7 +136,7 @@ class Agent(object):
         # Get expected Q values from local model
         Q_expected = self.qnetwork_local(states).gather(1, actions)
         td_error = torch.abs(Q_targets.cpu().detach() - Q_expected.cpu().detach()).numpy()
-        new_priorities = td_error**self.prioritized_replay_omega
+        new_priorities = td_error**self.prioritized_replay_omega + self.prioritized_replay_eps
         self.memory.update_priorities(batch_idxes.cpu().numpy(), new_priorities)
 
         # Compute loss
