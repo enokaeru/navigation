@@ -69,7 +69,7 @@ class Agent(object):
         # Replay memory
         self.memory = PrioritizedReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed, n_steps, GAMMA,
                                               prioritized_replay_alpha)
-        if prioritized_replay_beta_iters is None:ppp
+        if prioritized_replay_beta_iters is None:
             prioritized_replay_beta_iters = total_timesteps
         self.beta_schedule = LinearSchedule(prioritized_replay_beta_iters,
                                             initial_p=prioritized_replay_beta0,
