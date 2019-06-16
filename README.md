@@ -49,5 +49,8 @@ The code could save weight and model to 'checkout.pth'.
 
 
 ### Reference
-[1] (openAi gym baseline)[https://github.com/openai/baselines/blob/master/baselines/deepq/models.py]
-[2] (Rainbow: Combining Improvements in Deep Reinforcement Learning)[https://arxiv.org/abs/1710.02298]
+1. [openAi gym baseline](https://github.com/openai/baselines/blob/master/baselines/deepq/) 
+2. [Udacity deep reinforcement leaning github](https://github.com/udacity/deep-reinforcement-learning/tree/master/python)
+3. [Rainbow: Combining Improvements in Deep Reinforcement Learning](https://arxiv.org/abs/1710.02298)
+4. [PRIORITIZED EXPERIENCE REPLAY](https://arxiv.org/abs/1511.05952)
+5. [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
