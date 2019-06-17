@@ -29,6 +29,35 @@ Hyper parameters are below, along to paper, git-hub repository.
 | TAU                     | 1.00E-03 | CONTINUOUS  CONTROL  WITH  DEEP  REINFORCEMENT LEARNING         |
 
 
+The model architectures are below along to dueling DQN.
+
+
+|       Layer (type)            |   Output Shape      |    Param # |
+|-------------------------------|---------------------| -----------|
+|            Linear-1           |   [-1, 64, 64]        |   2,432   |
+|            Linear-2           |    [-1, 64, 64]        |  4,160    |
+|            Linear-3           |   [-1, 64, 256]        |  16,640   |
+|            Linear-state_out   |   [-1, 64, 37]        |  9,509    |
+|            Linear-action_out  |    [-1, 64, 4]        |   1,028   |
+|            Linear-state_score |    [-1, 64, 1]        |      38   |
+
+Total params: 33,807
+Trainable params: 33,807
+Non-trainable params: 0
+----------------------------------------------------------------
+Input size (MB): 0.01
+Forward/backward pass size (MB): 0.21
+Params size (MB): 0.13
+Estimated Total Size (MB): 0.35
+----------------------------------------------------------------
+where Batch size is 64.
+
+Output of the model are below.
+```
+output = state_score + action_out - action_out.mean()
+```
+
+
 ## Plot of Rewords
 821 episodes needed to solve the environment. 
 I'm interested how much to improve the reward, so the training continued　even after solving.
