@@ -41,15 +41,15 @@ The model architectures are below along to dueling DQN.
 |            Linear-action_out  |    [-1, 64, 4]        |   1,028   |
 |            Linear-state_score |    [-1, 64, 1]        |      38   |
 
-Total params: 33,807
-Trainable params: 33,807
-Non-trainable params: 0
-----------------------------------------------------------------
-Input size (MB): 0.01
-Forward/backward pass size (MB): 0.21
-Params size (MB): 0.13
-Estimated Total Size (MB): 0.35
-----------------------------------------------------------------
+Total params: 33,807  <br>
+Trainable params: 33,807 <br>
+Non-trainable params: 0 <br>
+<br>
+Input size (MB): 0.01 <br>
+Forward/backward pass size (MB): 0.21 <br>
+Params size (MB): 0.13 <br>
+Estimated Total Size (MB): 0.35 <br>
+<br>
 where Batch size is 64.
 
 Output of the model are below.
