@@ -6,6 +6,11 @@
 # Report
 
 ## Learning  Algorithm
+I implement DQN algorithm for the project. DQN algorithm is off-policy, model-free algorithm.
+DQN algorithm is that it extends approximation of Q function in Q learning to deep neural net.
+
+DQN algorithm learning are more easy to learn than policy-gradient algorithm.
+
 I adapt priorities replay buffer, dueling network, double dqn, Multi-step learning.
 Hyper parameters are below, along to paper, git-hub repository.
 
